@@ -5,7 +5,7 @@
 #ifdef LW_ENABLE_TRACE
 #   include <cstring>
 #   include <iostream>
-#   define LW_TRACE(m) std::cout << LW_FILENAME << "[" << __LINE__ "] " << m << std::endl
+#   define LW_TRACE(m) std::cout << LW_FILENAME << "[" << __LINE__ << "] " << m << std::endl
 #else
 #   define LW_TRACE(m) LW_NOOP
 #endif
