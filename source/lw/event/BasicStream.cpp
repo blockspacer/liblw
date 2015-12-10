@@ -4,6 +4,7 @@
 
 #include "lw/event/BasicStream.hpp"
 #include "lw/event/Promise.impl.hpp"
+#include "lw/pp.hpp"
 
 namespace lw {
 namespace event {
@@ -96,31 +97,48 @@ Future< std::size_t > BasicStream::write( buffer_ptr_t buffer ){
 // ---------------------------------------------------------------------------------------------- //
 
 Future<std::size_t> BasicStream::_read(void){
+    LW_TRACE("Starting protracted reading from stream.");
     int res = uv_read_start(
         m_state->handle,
         [](uv_handle_t* handle, std::size_t size, uv_buf_t* out_buffer){
+            LW_TRACE("Getting read buffer.");
+
             // Allocate a buffer for libuv to read into.
             auto state = ((_State*)handle->data)->shared_from_this();
-            memory::Buffer& buffer = BasicStream( state )._next_read_buffer();
+            memory::Buffer& buffer = BasicStream(state)._next_read_buffer();
             *out_buffer = uv_buf_init((char*)buffer.data(), buffer.size());
         },
         [](uv_stream_t* handle, long int size, const uv_buf_t* buffer){
+            LW_TRACE("Read data, result: " << size);
+
             // Data has been read, or an error encountered.
             auto state  = ((_State*)handle->data)->shared_from_this();
             auto stream = BasicStream(state);
 
             if (size == UV_EOF) {
+                LW_TRACE("Read encountered EOF");
+
                 // End of file, trigger a stop.
                 stream._stop_read();
                 state.reset();
             }
+            else if (size < 0) {
+                LW_TRACE("Read encountered an error.");
+
+                // An error while reading, reject and stop.
+                stream._stop_read(LW_UV_ERROR(StreamError, size));
+                state.reset();
+            }
             else {
+                LW_TRACE("Read successful, calling back.");
+
                 // More data is available, update our state and call back.
                 state->read_count += size;
                 state->read_callback(
                     buffer_ptr_t(
                         new memory::Buffer((memory::byte*)buffer->base, size),
                         [state](memory::Buffer* buffer){
+                            LW_TRACE("Releasing read buffer.");
                             BasicStream stream = state;
                             stream._release_read_buffer(buffer->data());
                             delete buffer;
@@ -132,17 +150,29 @@ Future<std::size_t> BasicStream::_read(void){
     );
 
     if (res < 0) {
+        LW_TRACE("Failed to start read (" << res << ").");
         m_state->read_callback = nullptr;
         throw LW_UV_ERROR(StreamError, res);
     }
 
+    LW_TRACE("Read started successfully.");
     return m_state->read_promise.future();
 }
 
 // ---------------------------------------------------------------------------------------------- //
 
-void BasicStream::_stop_read( void ){
-    m_state->read_promise.resolve( m_state->read_count );
+void BasicStream::_stop_read(void){
+    LW_TRACE("Stopping read as completed.");
+    m_state->read_promise.resolve(m_state->read_count);
+    m_state->read_promise.reset();
+    m_state->read_count = 0;
+}
+
+// ---------------------------------------------------------------------------------------------- //
+
+void BasicStream::_stop_read(const lw::error::Exception& err){
+    LW_TRACE("Stopping read with error: " << err.what());
+    m_state->read_promise.reject(err);
     m_state->read_promise.reset();
     m_state->read_count = 0;
 }

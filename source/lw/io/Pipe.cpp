@@ -4,6 +4,7 @@
 
 #include "lw/error.hpp"
 #include "lw/io/Pipe.hpp"
+#include "lw/pp.hpp"
 
 namespace lw {
 namespace io {
@@ -25,6 +26,7 @@ Pipe::Pipe(event::Loop& loop, const ipc_t&):
 // ---------------------------------------------------------------------------------------------- //
 
 void Pipe::open(const int pipe){
+    LW_TRACE("Opening pipe " << pipe);
     int res = uv_pipe_open((uv_pipe_t*)&handle(), pipe);
     if (res < 0) {
         throw LW_UV_ERROR(PipeError, res);
@@ -34,6 +36,7 @@ void Pipe::open(const int pipe){
 // ---------------------------------------------------------------------------------------------- //
 
 void Pipe::bind(const std::string& name){
+    LW_TRACE("Binding to pipe named \"" << name << "\"");
     int res = uv_pipe_bind((uv_pipe_t*)&handle(), name.c_str());
     if (res < 0) {
         throw LW_UV_ERROR(PipeError, res);
@@ -43,6 +46,7 @@ void Pipe::bind(const std::string& name){
 // ---------------------------------------------------------------------------------------------- //
 
 event::Future<> Pipe::connect(const std::string& name){
+    LW_TRACE("Connecting to pipe named \"" << name << "\"");
     if (m_connect_promise.is_finished() || m_connect_req != nullptr) {
         throw PipeError(1, "Cannot connect a pipe twice.");
     }
@@ -61,6 +65,7 @@ event::Future<> Pipe::connect(const std::string& name){
         (uv_pipe_t*)&handle(),
         name.c_str(),
         [](uv_connect_t* req, int status){
+            LW_TRACE("Pipe connection status: " << status);
             Pipe& pipe = *(Pipe*)req->data;
             if (status < 0) {
                 pipe.m_connect_promise.reject(LW_UV_ERROR(PipeError, status));
@@ -79,6 +84,7 @@ event::Future<> Pipe::connect(const std::string& name){
 // ---------------------------------------------------------------------------------------------- //
 
 uv_stream_s* Pipe::_make_state(event::Loop& loop, const bool ipc){
+    LW_TRACE("Making pipe state.");
     uv_pipe_t* pipe = (uv_pipe_t*)std::malloc(sizeof(uv_pipe_t));
     uv_pipe_init(loop.lowest_layer(), pipe, ipc);
     return (uv_stream_s*)pipe;
