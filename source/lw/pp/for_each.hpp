@@ -1,9 +1,6 @@
 #pragma once
 
-#define LW_EXPAND(...) __VA_ARGS__
-#define LW_CONCAT(x,y) x##y
-#define LW_STRINGIFY_IMPL(x) #x
-#define LW_STRINGIFY(x) LW_STRINGIFY_IMPL(x)
+#include "lw/pp/util.hpp"
 
 #define _LW_FOR_EACH_1(op, x, ...) op(x)
 #define _LW_FOR_EACH_2(op, x, ...) op(x) LW_EXPAND(_LW_FOR_EACH_1(op, __VA_ARGS__))

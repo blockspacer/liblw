@@ -10,6 +10,11 @@
         },
     },
     "targets": [{
+        "target_name": "pipe-test",
+        "type": "executable",
+        "dependencies": ["libuv"],
+        "sources": ["source/pipe-test.cpp"]
+    }, {
         "target_name": "liblw",
         "type": "shared_library",
         "include_dirs": ["./source"],
@@ -58,7 +63,9 @@
             "source/lw/memory/Buffer.cpp",
             "source/lw/memory/Buffer.hpp",
 
+            "source/lw/pp/debug.hpp",
             "source/lw/pp/for_each.hpp",
+            "source/lw/pp/util.hpp",
 
             "source/trait/function.hpp",
             "source/trait/tuple.hpp"
