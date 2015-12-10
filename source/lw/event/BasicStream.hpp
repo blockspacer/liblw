@@ -138,7 +138,14 @@ private:
     // ------------------------------------------------------------------------------------------ //
 
     /// @brief Resolves the read promise and resets the promise and read count.
-    void _stop_read( void );
+    void _stop_read(void);
+
+    // ------------------------------------------------------------------------------------------ //
+
+    /// @brief Rejects the read promise using the given error and resets the promise and read count.
+    ///
+    /// @param err The error to reject the read promise with.
+    void _stop_read(const lw::error::Exception& err);
 
     // ------------------------------------------------------------------------------------------ //
 
