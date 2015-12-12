@@ -112,8 +112,17 @@ Future<std::size_t> BasicStream::_read(void){
             LW_TRACE("Read data, result: " << size);
 
             // Data has been read, or an error encountered.
-            auto state  = ((_State*)handle->data)->shared_from_this();
-            auto stream = BasicStream(state);
+            auto state      = ((_State*)handle->data)->shared_from_this();
+            auto stream     = BasicStream(state);
+            auto buffer_ptr = buffer_ptr_t(
+                new memory::Buffer((memory::byte*)buffer->base, size),
+                [state](memory::Buffer* buffer){
+                    LW_TRACE("Releasing read buffer.");
+                    BasicStream stream = state;
+                    stream._release_read_buffer(buffer->data());
+                    delete buffer;
+                }
+            );
 
             if (size == UV_EOF) {
                 LW_TRACE("Read encountered EOF");
@@ -134,17 +143,7 @@ Future<std::size_t> BasicStream::_read(void){
 
                 // More data is available, update our state and call back.
                 state->read_count += size;
-                state->read_callback(
-                    buffer_ptr_t(
-                        new memory::Buffer((memory::byte*)buffer->base, size),
-                        [state](memory::Buffer* buffer){
-                            LW_TRACE("Releasing read buffer.");
-                            BasicStream stream = state;
-                            stream._release_read_buffer(buffer->data());
-                            delete buffer;
-                        }
-                    )
-                );
+                state->read_callback(buffer_ptr);
             }
         }
     );
