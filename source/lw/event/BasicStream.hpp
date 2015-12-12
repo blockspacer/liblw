@@ -72,10 +72,17 @@ public:
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Gives access to the native stream handle.
+    uv_stream_s* lowest_layer(void){
+        return m_state->handle;
+    }
+
+    // ------------------------------------------------------------------------------------------ //
+
 protected:
     /// @brief The internal stream state.
     struct _State : public std::enable_shared_from_this<_State>{
-        ~_State(void);
+        virtual ~_State(void);
 
         uv_stream_s*    handle;         ///< The underlying stream handle.
         std::size_t     read_count;     ///< The running tally of bytes read.
@@ -107,14 +114,14 @@ protected:
     // ------------------------------------------------------------------------------------------ //
 
     /// @brief Retrieves the stream handle.
-    uv_stream_s& handle( void ){
+    uv_stream_s& handle(void){
         return *m_state->handle;
     }
 
     // ------------------------------------------------------------------------------------------ //
 
     /// @copydoc BasicStream::handle()
-    const uv_stream_s& handle( void ) const {
+    const uv_stream_s& handle(void) const {
         return *m_state->handle;
     }
 
@@ -124,6 +131,11 @@ protected:
     ///
     /// @param state The new stream state.
     void state(const std::shared_ptr<_State>& state);
+
+    /// @brief Gives access to the internal state pointer.
+    const std::shared_ptr<_State>& state(void) const {
+        return m_state;
+    }
 
     // ------------------------------------------------------------------------------------------ //
 
@@ -154,14 +166,14 @@ private:
     /// If no buffers are available, then a new one is allocated.
     ///
     /// @return A reference to a useable memory buffer.
-    memory::Buffer& _next_read_buffer( void );
+    memory::Buffer& _next_read_buffer(void);
 
     // ------------------------------------------------------------------------------------------ //
 
     /// @brief Releases the given buffer, making it available to read into again.
     ///
     /// @param base A pointer to the first byte in the buffer.
-    void _release_read_buffer( const void* base );
+    void _release_read_buffer(const void* base);
 };
 
 }
