@@ -1,6 +1,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <fcntl.h>
 #include <gtest/gtest.h>
 #include <unistd.h>
 
@@ -29,11 +30,13 @@ struct PipeTests : public testing::Test {
 
     void SetUp(void) override {
         ::pipe(pipe_descriptors);
+        ::remove(pipe_name.c_str());
     }
 
     void TearDown(void) override {
         ::close(pipe_descriptors[0]);
         ::close(pipe_descriptors[1]);
+        ::remove(pipe_name.c_str());
     }
 };
 
@@ -75,7 +78,7 @@ TEST_F(PipeTests, Read){
         ::write(pipe_descriptors[1], content_str.c_str(), content_str.size());
         ::fsync(pipe_descriptors[1]);
 
-        return event::wait(loop, 500ms).then([&](){
+        return event::wait(loop, 100ms).then([&](){
             LW_TRACE("Delayed closing of pipe.");
             SCOPED_TRACE("Delayed closing of pipe.");
             ::close(pipe_descriptors[1]);
@@ -165,39 +168,67 @@ TEST_F(PipeTests, Write){
 
 // ---------------------------------------------------------------------------------------------- //
 
-// TEST_F(PipeTests, BindRead){
-//     io::Pipe pipe(loop);
-//     bool started = false;
-//     bool finished = false;
-//     bool promise_called = false;
-//
-//     // Set up the pipe to read.
-//     pipe.bind(pipe_name);
-//     pipe.read([&](const std::shared_ptr<const memory::Buffer>& buffer){
-//         EXPECT_TRUE(started);
-//         EXPECT_FALSE(finished);
-//         EXPECT_EQ(contents, *buffer);
-//     }).then([&](const std::size_t bytes_read){
-//         promise_called = true;
-//         EXPECT_TRUE(started);
-//         EXPECT_FALSE(finished);
-//         EXPECT_EQ(contents.size(), bytes_read);
-//     });
-//
-//     // Separately, create a timeout that will send the data on the pipe once the loop has started.
-//     event::wait(loop, 0s).then([&](){
-//         int pipe_fd = ::open(pipe_name.c_str(), O_WRONLY);
-//         ::write(pipe_fd, content_str.c_str(), content_str.size());
-//         ::fsync(pipe_fd);
-//         ::close(pipe_fd);
-//     });
-//
-//     started = true;
-//     loop.run();
-//     finished = true;
-//
-//     EXPECT_TRUE(promise_called);
-// }
+TEST_F(PipeTests, DISABLED_BindRead){
+    io::Pipe pipe(loop, io::Pipe::ipc);
+    bool started = false;
+    bool finished = false;
+    bool received_client = false;
+    bool promise_called = false;
+    bool listen_completed = false;
+
+    // Set up the pipe to read.
+    pipe.bind(pipe_name);
+    pipe.listen([&](const std::shared_ptr<event::BasicStream>& client){
+        LW_TRACE("Received a connection, accepting.");
+        EXPECT_TRUE(started);
+        EXPECT_FALSE(received_client);
+        received_client = true;
+
+        client->read([&](const std::shared_ptr<const memory::Buffer>& buffer){
+            LW_TRACE("Read " << buffer->size() << " bytes.");
+            EXPECT_TRUE(started);
+            EXPECT_FALSE(finished);
+            EXPECT_EQ(contents, *buffer);
+        }).then([&](const std::size_t bytes_read){
+            LW_TRACE("Read completed, " << bytes_read << " total bytes read.");
+            promise_called = true;
+            EXPECT_TRUE(started);
+            EXPECT_FALSE(finished);
+            EXPECT_EQ(contents.size(), bytes_read);
+        });
+    }).then([&](){
+        LW_TRACE("Listening stopped.");
+        EXPECT_TRUE(received_client);
+        EXPECT_FALSE(listen_completed);
+        listen_completed = true;
+    });
+
+    // Separately, create a timeout that will send the data on the pipe once the loop has started.
+    event::wait(loop, 1000ms).then([&](){
+        LW_TRACE("Delayed writing to pipe_fd.");
+        int pipe_fd = ::open(pipe_name.c_str(), O_WRONLY);
+        ::write(pipe_fd, content_str.c_str(), content_str.size());
+        ::fsync(pipe_fd);
+
+        return event::wait(loop, 5000ms).then([&](){
+            LW_TRACE("Delayed closing of pipe_fd.");
+            ::close(pipe_fd);
+
+            return event::wait(loop, 5000ms);
+        });
+    }).then([&](){
+        LW_TRACE("Delayed closing of io::Pipe");
+        return pipe.close();
+    });
+
+    started = true;
+    loop.run();
+    finished = true;
+
+    EXPECT_TRUE(received_client);
+    EXPECT_TRUE(promise_called);
+    EXPECT_TRUE(listen_completed);
+}
 
 }
 }

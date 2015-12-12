@@ -24,6 +24,11 @@ public:
         ERR = 2     ///< stderr
     };
 
+    /// @brief
+    ///
+    /// @param client
+    typedef std::function<void(const std::shared_ptr<event::BasicStream>& client)> listen_callback_t;
+
     // ------------------------------------------------------------------------------------------ //
 
     /// @brief Constructs a standard pipe.
@@ -57,14 +62,66 @@ public:
 
     // ------------------------------------------------------------------------------------------ //
 
+    template<typename Func>
+    event::Future<> listen(const int max_backlog, Func&& cb){
+        static_assert(
+            std::is_convertible<Func, listen_callback_t>::value,
+            "`Func` must be compatible with `io::Pipe::listen_callback_t`."
+        );
+        auto pipe_state = std::static_pointer_cast<_PipeState>(state());
+        pipe_state->listen_callback =
+            [pipe_state, cb](const std::shared_ptr<event::BasicStream>& client){ cb(client); };
+        return _listen(max_backlog);
+    }
+
+    template<typename Func>
+    event::Future<> listen(Func&& cb){
+        return listen(128, std::forward<Func>(cb));
+    }
+
+    // ------------------------------------------------------------------------------------------ //
+
+    event::Future<> close(void){
+        return _close();
+    }
+
+    // ------------------------------------------------------------------------------------------ //
+
 private:
+    struct _PipeState : public BasicStream::_State {
+        _PipeState(event::Loop& _loop):
+            loop(_loop)
+        {}
+
+        event::Loop& loop;
+        listen_callback_t listen_callback;
+        event::Promise<> listen_promise;
+        event::Promise<> close_promise;
+    };
+
     /// @brief Constructs the internal shared state for the pipe.
     ///
     /// @param loop The event loop that the pipe will use.
     /// @param ipc  Flag indicating if this pipe will be used to pass handles.
     ///
     /// @return A new shared state for a pipe.
-    static uv_stream_s* _make_state(event::Loop& loop, const bool ipc);
+    static std::shared_ptr<_PipeState> _make_state(event::Loop& loop, const bool ipc);
+
+    // ------------------------------------------------------------------------------------------ //
+
+    Pipe(const std::shared_ptr<_PipeState>& state):
+        BasicStream(state)
+    {}
+
+    // ------------------------------------------------------------------------------------------ //
+
+    event::Future<> _listen(const int max_backlog);
+
+    // ------------------------------------------------------------------------------------------ //
+
+    event::Future<> _close(void);
+
+    event::Future<> _close(const error::Exception& err);
 
     // ------------------------------------------------------------------------------------------ //
 
