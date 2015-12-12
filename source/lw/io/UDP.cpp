@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include <uv.h>
 
 #include "lw/io/UDP.hpp"
