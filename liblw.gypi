@@ -56,6 +56,10 @@
             "source/lw/io/File.hpp",
             "source/lw/io/Pipe.cpp",
             "source/lw/io/Pipe.hpp",
+            "source/lw/io/TCP.cpp",
+            "source/lw/io/TCP.hpp",
+            "source/lw/io/UDP.cpp",
+            "source/lw/io/UDP.hpp",
 
             "source/lw/iter/Iterable.hpp",
             "source/lw/iter/RandomAccessIterator.hpp",
