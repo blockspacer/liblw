@@ -258,5 +258,63 @@ TEST_F (BufferTests, EqualityOperator) {
     EXPECT_EQ(b1, b5);
 }
 
+// ---------------------------------------------------------------------------------------------- //
+
+TEST_F (BufferTests, XOR) {
+    // 0011 0110 1100 1001 a
+    // 0101 1001 1010 1100 b
+    // 0110 1111 0110 0101 a ^ b
+
+    using lw::memory::byte;
+    union {
+        byte str[];
+        std::uint16_t num;
+    } data;
+
+    // a
+    data.num = 0b0011011011001001;
+    memory::Buffer a((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    // b
+    data.num = 0b0101100110101100;
+    memory::Buffer b((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    // a ^ b
+    data.num = 0b0110111101100101;
+    memory::Buffer a_xor_b((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    EXPECT_EQ(a_xor_b, a ^ b);
+    EXPECT_EQ(a_xor_b, b ^ a); // XOR should be order-independent.
+}
+
+// ---------------------------------------------------------------------------------------------- //
+
+TEST_F (BufferTests, XOREqual) {
+    // 0011 0110 1100 1001 a
+    // 0101 1001 1010 1100 b
+    // 0110 1111 0110 0101 a ^ b
+
+    using lw::memory::byte;
+    union {
+        byte str[];
+        std::uint16_t num;
+    } data;
+
+    // a
+    data.num = 0b0011011011001001;
+    memory::Buffer a((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    // b
+    data.num = 0b0101100110101100;
+    memory::Buffer b((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    // a ^ b
+    data.num = 0b0110111101100101;
+    memory::Buffer a_xor_b((const byte*)data.str, ((const byte*)data.str) + sizeof(data.num));
+
+    a ^= b;
+    EXPECT_EQ(a_xor_b, a);
+}
+
 }
 }
