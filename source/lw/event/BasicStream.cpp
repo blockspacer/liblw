@@ -34,8 +34,11 @@ BasicStream::BasicStream( uv_stream_s* handle ):
 // ---------------------------------------------------------------------------------------------- //
 
 BasicStream::_State::~_State(void){
-    if (handle) {
+    if (handle && !uv_is_closing((uv_handle_t*)handle)) {
         uv_close((uv_handle_t*)handle, [](uv_handle_t* handle){ std::free(handle); });
+    }
+    else {
+        std::free(handle);
     }
 }
 
@@ -97,7 +100,7 @@ Future< std::size_t > BasicStream::write( buffer_ptr_t buffer ){
 // ---------------------------------------------------------------------------------------------- //
 
 Future<std::size_t> BasicStream::_read(void){
-    LW_TRACE("Starting protracted reading from stream.");
+    LW_TRACE("Starting protracted reading from stream " << (void*)m_state.get());
     int res = uv_read_start(
         m_state->handle,
         [](uv_handle_t* handle, std::size_t size, uv_buf_t* out_buffer){
@@ -161,7 +164,7 @@ Future<std::size_t> BasicStream::_read(void){
 // ---------------------------------------------------------------------------------------------- //
 
 void BasicStream::_stop_read(void){
-    LW_TRACE("Stopping read as completed.");
+    LW_TRACE("Stopping read as completed on stream " << (void*)m_state.get());
     m_state->read_promise.resolve(m_state->read_count);
     m_state->read_promise.reset();
     m_state->read_count = 0;
@@ -170,7 +173,7 @@ void BasicStream::_stop_read(void){
 // ---------------------------------------------------------------------------------------------- //
 
 void BasicStream::_stop_read(const lw::error::Exception& err){
-    LW_TRACE("Stopping read with error: " << err.what());
+    LW_TRACE("Stopping read on stream " << (void*)m_state.get() << " with error: " << err.what());
     m_state->read_promise.reject(err);
     m_state->read_promise.reset();
     m_state->read_count = 0;
