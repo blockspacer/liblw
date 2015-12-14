@@ -224,7 +224,7 @@ TEST_F (BufferTests, MoveOwnedOperator) {
     char* data = new char[50];
     std::copy(str, str + size, data );
     memory::Buffer *buffer = new memory::Buffer((memory::byte*)data, size, true); // Own it!
-    memory::Buffer *buffer2 = new memory::Buffer();
+    memory::Buffer *buffer2 = new memory::Buffer(100); // Own it on both sides!
     *buffer2 = std::move(*buffer);
 
     EXPECT_EQ(size, buffer2->size());
