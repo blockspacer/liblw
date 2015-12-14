@@ -1,8 +1,12 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <gtest/gtest.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include "lw/event.hpp"
@@ -19,7 +23,7 @@ struct PipeTests : public testing::Test {
     event::Loop loop;
     int pipe_descriptors[2];
     const std::string content_str   = "an awesome message to keep";
-    const std::string pipe_name     = "liblw_pipe_tests_named_pipe";
+    const std::string pipe_name     = "/tmp/liblw_pipe_tests_named_pipe";
     memory::Buffer contents;
 
     PipeTests(void):
@@ -168,7 +172,7 @@ TEST_F(PipeTests, Write){
 
 // ---------------------------------------------------------------------------------------------- //
 
-TEST_F(PipeTests, DISABLED_BindRead){
+TEST_F(PipeTests, BindRead){
     io::Pipe pipe(loop, io::Pipe::ipc);
     bool started = false;
     bool finished = false;
@@ -204,21 +208,37 @@ TEST_F(PipeTests, DISABLED_BindRead){
     });
 
     // Separately, create a timeout that will send the data on the pipe once the loop has started.
-    event::wait(loop, 1000ms).then([&](){
-        LW_TRACE("Delayed writing to pipe_fd.");
-        int pipe_fd = ::open(pipe_name.c_str(), O_WRONLY);
-        ::write(pipe_fd, content_str.c_str(), content_str.size());
-        ::fsync(pipe_fd);
+    event::wait(loop, 10ms).then([&](){
+        LW_TRACE("Delayed connecting to pipe.");
 
-        return event::wait(loop, 5000ms).then([&](){
-            LW_TRACE("Delayed closing of pipe_fd.");
-            ::close(pipe_fd);
+        // Prepare the socket structure.
+        auto sock = std::make_shared<sockaddr_un>();
+        sock->sun_family = AF_UNIX;
+        std::strcpy(sock->sun_path, pipe_name.c_str());
+        int sock_size = sizeof(sock->sun_family) + pipe_name.size() + 1;
 
-            return event::wait(loop, 5000ms);
+        // Open the socket and connect!
+        int sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        EXPECT_NE(-1, sock_fd) << ::strerror(errno);
+        int res = ::connect(sock_fd, (sockaddr*)sock.get(), sock_size);
+        EXPECT_NE(-1, res) << ::strerror(errno);
+
+        return event::wait(loop, 10ms).then([&, sock_fd](){
+            LW_TRACE("Delayed writing to pipe.");
+            ::send(sock_fd, content_str.c_str(), content_str.size(), 0);
+
+            return event::wait(loop, 10ms);
+        }).then([&, sock_fd, sock](){
+            LW_TRACE("Delayed closing of pipe.");
+            ::shutdown(sock_fd, SHUT_RDWR);
+
+            return event::wait(loop, 10ms);
         });
     }).then([&](){
         LW_TRACE("Delayed closing of io::Pipe");
         return pipe.close();
+    }).then([&](){
+        LW_TRACE("Pipe closed.");
     });
 
     started = true;
