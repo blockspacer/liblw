@@ -46,7 +46,7 @@ struct PipeTests : public testing::Test {
 
 // ---------------------------------------------------------------------------------------------- //
 
-TEST_F(PipeTests, Read){
+TEST_F (PipeTests, Read) {
     io::Pipe pipe(loop);
     bool started = false;
     bool buffer_received = false;
@@ -100,7 +100,7 @@ TEST_F(PipeTests, Read){
 
 // ---------------------------------------------------------------------------------------------- //
 
-TEST_F(PipeTests, StopRead){
+TEST_F (PipeTests, StopRead) {
     io::Pipe pipe(loop);
     bool started = false;
     bool finished = false;
@@ -137,7 +137,7 @@ TEST_F(PipeTests, StopRead){
 
 // ---------------------------------------------------------------------------------------------- //
 
-TEST_F(PipeTests, Write){
+TEST_F (PipeTests, Write) {
     io::Pipe pipe(loop);
     bool started = false;
     bool finished = false;
@@ -172,7 +172,7 @@ TEST_F(PipeTests, Write){
 
 // ---------------------------------------------------------------------------------------------- //
 
-TEST_F(PipeTests, BindRead){
+TEST_F (PipeTests, BindRead) {
     io::Pipe pipe(loop, io::Pipe::ipc);
     bool started = false;
     bool finished = false;
