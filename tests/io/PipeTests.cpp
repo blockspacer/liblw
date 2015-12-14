@@ -82,7 +82,7 @@ TEST_F(PipeTests, Read){
         ::write(pipe_descriptors[1], content_str.c_str(), content_str.size());
         ::fsync(pipe_descriptors[1]);
 
-        return event::wait(loop, 100ms).then([&](){
+        return event::wait(loop, 10ms).then([&](){
             LW_TRACE("Delayed closing of pipe.");
             SCOPED_TRACE("Delayed closing of pipe.");
             ::close(pipe_descriptors[1]);
