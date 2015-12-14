@@ -24,9 +24,9 @@ public:
         ERR = 2     ///< stderr
     };
 
-    /// @brief
+    /// @brief Callback type used for handling clients when they connect.
     ///
-    /// @param client
+    /// @param client An already accepted client stream.
     typedef std::function<void(const std::shared_ptr<event::BasicStream>& client)> listen_callback_t;
 
     // ------------------------------------------------------------------------------------------ //
@@ -62,18 +62,29 @@ public:
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Listens for new connections to the pipe.
+    ///
+    /// @tparam Func A functor type compatible with `listen_callback_t`.
+    ///
+    /// @param max_backlog  The maximum number of clients to let pile up on the socket.
+    /// @param func         The function to call when clients connect.
+    ///
+    /// @return A promise that will resolve when listening is stopped.
     template<typename Func>
-    event::Future<> listen(const int max_backlog, Func&& cb){
+    event::Future<> listen(const int max_backlog, Func&& func){
         static_assert(
             std::is_convertible<Func, listen_callback_t>::value,
             "`Func` must be compatible with `io::Pipe::listen_callback_t`."
         );
         auto pipe_state = std::static_pointer_cast<_PipeState>(state());
         pipe_state->listen_callback =
-            [pipe_state, cb](const std::shared_ptr<event::BasicStream>& client){ cb(client); };
+            [pipe_state, func](const std::shared_ptr<event::BasicStream>& client){ func(client); };
         return _listen(max_backlog);
     }
 
+    /// @copydoc lw::io::Pipe::listen(const int,Func&&)
+    ///
+    /// Defaults `max_backlog` paramter to 128.
     template<typename Func>
     event::Future<> listen(Func&& cb){
         return listen(128, std::forward<Func>(cb));
@@ -81,6 +92,9 @@ public:
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Stops the pipe from listening for more connections.
+    ///
+    /// @return A promise to have the pipe closed to new connections.
     event::Future<> close(void){
         return _close();
     }
@@ -88,7 +102,8 @@ public:
     // ------------------------------------------------------------------------------------------ //
 
 private:
-    struct _PipeState : public BasicStream::_State {
+    /// @brief Internal state extending the `event::BasicStream`'s state.
+    struct _PipeState : public event::BasicStream::_State {
         _PipeState(event::Loop& _loop):
             loop(_loop)
         {}
@@ -109,19 +124,36 @@ private:
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Internal constructor for creating pipes from existing states.
     Pipe(const std::shared_ptr<_PipeState>& state):
         BasicStream(state)
     {}
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Implementation for listening.
+    ///
+    /// @param max_backlog The maximum number of clients to allow to pile up on the socket.
+    ///
+    /// @return A promise that will be resolved when listening stops.
     event::Future<> _listen(const int max_backlog);
 
     // ------------------------------------------------------------------------------------------ //
 
+    /// @brief Implementation for closing under normal circumstances.
+    ///
+    /// @return A promise to have the pipe closed to new connections.
     event::Future<> _close(void);
 
+    /// @brief Implementation for closing with an error.
+    ///
+    /// @param err The error to reject the listening promise with.
+    ///
+    /// @return A promise to have the pipe closed to new connections.
     event::Future<> _close(const error::Exception& err);
+
+    /// @brief Performs actual closing of the handle.
+    void _do_close(void);
 
     // ------------------------------------------------------------------------------------------ //
 

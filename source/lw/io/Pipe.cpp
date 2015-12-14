@@ -15,6 +15,26 @@ const Pipe::ipc_t Pipe::ipc{};
 
 // ---------------------------------------------------------------------------------------------- //
 
+// The names of UV handle types as they're known in the code.
+#define _LW_UV_UC_TYPE_STR(uc, lc) LW_STRINGIFY(LW_CONCAT(UV_, uc)),
+static const char* _uv_uc_type_names[] = {
+    "UV_UNKNOWN_HANDLE",
+    UV_HANDLE_TYPE_MAP(_LW_UV_UC_TYPE_STR)
+    "UV_FILE",
+    0
+};
+
+// The names of UV handle types as they're understood by humans.
+#define _LW_UV_LC_TYPE_STR(uc, lc) LW_STRINGIFY(lc),
+static const char* _uv_lc_type_names[] = {
+    "unknown handle",
+    UV_HANDLE_TYPE_MAP(_LW_UV_LC_TYPE_STR)
+    "file",
+    0
+};
+
+// ---------------------------------------------------------------------------------------------- //
+
 Pipe::Pipe(event::Loop& loop):
     event::BasicStream(_make_state(loop, false))
 {
@@ -90,9 +110,9 @@ event::Future<> Pipe::connect(const std::string& name){
 // ---------------------------------------------------------------------------------------------- //
 
 event::Future<> Pipe::_listen(const int max_backlog){
-    LW_TRACE("Listening for connections on pipe.");
+    LW_TRACE("Listening for connections on pipe " << (void*)state().get());
     int res = uv_listen(lowest_layer(), max_backlog, [](uv_stream_t* handle, int status){
-        LW_TRACE("Recieved connection update (" << status << ").");
+        LW_TRACE("Recieved connection update (" << status << ") for pipe " << (void*)handle->data);
 
         // Pull out state.
         auto state = std::static_pointer_cast<_PipeState>(
@@ -115,20 +135,28 @@ event::Future<> Pipe::_listen(const int max_backlog){
         }
 
         // We have a pending connection, lets see what type.
+        LW_TRACE("Making client object.");
         std::shared_ptr<BasicStream> client = nullptr;
         uv_handle_type client_type = uv_pipe_pending_type((uv_pipe_t*)handle);
-        if (client_type == UV_TCP) {
+        if (client_type == UV_NAMED_PIPE) {
+            client = std::make_shared<io::Pipe>(state->loop);
+        }
+        else if (client_type == UV_TCP) {
             client = std::make_shared<io::TCP>(state->loop);
         }
         else if (client_type == UV_UDP) {
             client = std::make_shared<io::UDP>(state->loop);
         }
         else {
-            LW_TRACE("Unknown client handle type: " << (int)client_type);
+            LW_TRACE(
+                "Unknown client handle type: " << (int)client_type << " "
+                << _uv_uc_type_names[client_type] << " (" << _uv_lc_type_names[client_type] << ")"
+            );
             throw PipeError((int)client_type, "Unknown client handle type.");
         }
 
         // Accept the new client.
+        LW_TRACE("Accepting client.");
         int res = uv_accept(handle, client->lowest_layer());
         if (res < 0) {
             LW_TRACE("Error accepting handle: " << res);
@@ -136,6 +164,7 @@ event::Future<> Pipe::_listen(const int max_backlog){
         }
 
         // Pass the client on to the callback.
+        LW_TRACE("Passing client to callback.");
         state->listen_callback(client);
     });
 
@@ -148,81 +177,50 @@ event::Future<> Pipe::_listen(const int max_backlog){
 
 // ---------------------------------------------------------------------------------------------- //
 
-event::Future<> Pipe::_close(void){
-    LW_TRACE("Closing the pipe.");
-    auto pipe_state = std::static_pointer_cast<_PipeState>(state());
+void Pipe::_do_close(void){
+    // Don't close the pipe if it is already closing.
+    if (uv_is_closing((uv_handle_t*)lowest_layer())) {
+        return;
+    }
 
-    // Shut down the write-side of the pipe.
-    uv_shutdown_t* req = (uv_shutdown_t*)std::malloc(sizeof(uv_shutdown_t));
-    req->data = state().get();
-    uv_shutdown(req, lowest_layer(), [](uv_shutdown_t* req, int status){
-        LW_TRACE("Pipe shutdown completed: " << status);
+    // Pipe isn't already closing, so close it.
+    uv_close((uv_handle_t*)lowest_layer(), [](uv_handle_t* handle){
+        LW_TRACE("Pipe " << (void*)handle->data << " closed.");
+        auto state = std::static_pointer_cast<_PipeState>(
+            ((_PipeState*)handle->data)->shared_from_this()
+        );
 
-        // Extract the pipe state from the request.
-        auto state = std::static_pointer_cast<_PipeState>(((_PipeState*)req->data)->shared_from_this());
-        Pipe pipe(state);
-
-        // Check the status of the shutdown.
-        if (status < 0) {
-            state->close_promise.reject(LW_UV_ERROR(PipeError, status));
-        }
-        else {
-            state->close_promise.resolve();
-        }
-
-        // Clean up the state.
+        state->close_promise.resolve();
         state->listen_callback = nullptr;
         state->listen_promise.reset();
+        state->close_promise.reset();
     });
+}
 
-    // Stop reading.
-    stop_read();
+// ---------------------------------------------------------------------------------------------- //
+
+event::Future<> Pipe::_close(void){
+    LW_TRACE("Closing pipe " << (void*)state().get());
+    _do_close();
 
     // Resolve the listen promise.
+    auto pipe_state = std::static_pointer_cast<_PipeState>(state());
     pipe_state->listen_promise.resolve();
 
-    return pipe_state->close_promise.future().then([req](){});
+    return pipe_state->close_promise.future();
 }
 
 // ---------------------------------------------------------------------------------------------- //
 
 event::Future<> Pipe::_close(const error::Exception& err){
     LW_TRACE("Closing the pipe with an error: " << err.what() << ".");
-    auto pipe_state = std::static_pointer_cast<_PipeState>(state());
-
-    // Shut down the write-side of the pipe.
-    std::shared_ptr<uv_shutdown_t> req(
-        (uv_shutdown_t*)std::malloc(sizeof(uv_shutdown_t)),
-        &std::free
-    );
-    req->data = pipe_state.get();
-    uv_shutdown(req.get(), lowest_layer(), [](uv_shutdown_t* req, int status){
-        LW_TRACE("Pipe shutdown completed: " << status);
-
-        // Extract the pipe state from the request.
-        auto state = std::static_pointer_cast<_PipeState>(((_PipeState*)req->data)->shared_from_this());
-        Pipe pipe(state);
-
-        // Check the status of the shutdown.
-        if (status < 0) {
-            state->close_promise.reject(LW_UV_ERROR(PipeError, status));
-        }
-        else {
-            state->close_promise.resolve();
-        }
-
-        // Clean up the state.
-        state->listen_callback = nullptr;
-        state->listen_promise.reset();
-    });
-
-    // Stop reading.
-    stop_read();
+    _do_close();
 
     // Reject the listen promise.
+    auto pipe_state = std::static_pointer_cast<_PipeState>(state());
     pipe_state->listen_promise.reject(err);
 
-    return pipe_state->close_promise.future().then([req](){});
+    return pipe_state->close_promise.future();
 }
 
 // ---------------------------------------------------------------------------------------------- //
@@ -235,6 +233,7 @@ std::shared_ptr<Pipe::_PipeState> Pipe::_make_state(event::Loop& loop, const boo
     // Stick it in a pipe state handle too.
     auto state_ptr = std::make_shared<_PipeState>(loop);
     state_ptr->handle = (uv_stream_t*)pipe;
+    LW_TRACE("Made state " << (void*)state_ptr.get());
     return state_ptr;
 }
 
