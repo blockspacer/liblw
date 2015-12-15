@@ -71,7 +71,7 @@ TEST_F (PipeTests, Read) {
         EXPECT_TRUE(started);
         EXPECT_TRUE(buffer_received);
         EXPECT_FALSE(finished);
-        EXPECT_LT( 0, bytes_read );
+        EXPECT_LT(0ul, bytes_read);
         EXPECT_EQ(contents.size(), bytes_read);
     });
 
@@ -208,7 +208,7 @@ TEST_F (PipeTests, BindRead) {
     });
 
     // Separately, create a timeout that will send the data on the pipe once the loop has started.
-    event::wait(loop, 10ms).then([&](){
+    event::wait(loop, 5ms).then([&](){
         LW_TRACE("Delayed connecting to pipe.");
 
         // Prepare the socket structure.
@@ -223,16 +223,16 @@ TEST_F (PipeTests, BindRead) {
         int res = ::connect(sock_fd, (sockaddr*)sock.get(), sock_size);
         EXPECT_NE(-1, res) << ::strerror(errno);
 
-        return event::wait(loop, 10ms).then([&, sock_fd](){
+        return event::wait(loop, 5ms).then([&, sock_fd](){
             LW_TRACE("Delayed writing to pipe.");
             ::send(sock_fd, content_str.c_str(), content_str.size(), 0);
 
-            return event::wait(loop, 10ms);
+            return event::wait(loop, 5ms);
         }).then([&, sock_fd, sock](){
             LW_TRACE("Delayed closing of pipe.");
             ::shutdown(sock_fd, SHUT_RDWR);
 
-            return event::wait(loop, 10ms);
+            return event::wait(loop, 5ms);
         });
     }).then([&](){
         LW_TRACE("Delayed closing of io::Pipe");
@@ -247,6 +247,87 @@ TEST_F (PipeTests, BindRead) {
 
     EXPECT_TRUE(received_client);
     EXPECT_TRUE(promise_called);
+    EXPECT_TRUE(listen_completed);
+}
+
+// ---------------------------------------------------------------------------------------------- //
+
+TEST_F (PipeTests, BindWrite) {
+    io::Pipe pipe(loop, io::Pipe::ipc);
+    bool started = false;
+    bool finished = false;
+    bool received_client = false;
+    bool write_completed = false;
+    bool listen_completed = false;
+
+    // Set up the pipe to write.
+    pipe.bind(pipe_name);
+    pipe.listen([&](const std::shared_ptr<event::BasicStream>& client){
+        LW_TRACE("Received a connection, accepting.");
+        EXPECT_TRUE(started);
+        EXPECT_FALSE(received_client);
+        EXPECT_FALSE(write_completed);
+        received_client = true;
+
+        // Write our data.
+        auto buffer = std::make_shared<memory::Buffer>(contents, memory::Buffer::share);
+        client->write(buffer).then([&, buffer](const std::size_t bytes_written){
+            LW_TRACE("Write completed.");
+            EXPECT_FALSE(write_completed);
+            EXPECT_EQ(contents.size(), bytes_written);
+            write_completed = true;
+        });
+    }).then([&](){
+        LW_TRACE("Listening stopped.");
+        EXPECT_TRUE(received_client);
+        EXPECT_TRUE(write_completed);
+        EXPECT_FALSE(listen_completed);
+        listen_completed = true;
+    });
+
+    // Separately, create a timeout that will read the data on the pipe once the loop has started.
+    event::wait(loop, 5ms).then([&](){
+        LW_TRACE("Delayed connecting to pipe.");
+
+        // Prepare the socket structure.
+        auto sock = std::make_shared<sockaddr_un>();
+        sock->sun_family = AF_UNIX;
+        std::strcpy(sock->sun_path, pipe_name.c_str());
+        int sock_size = sizeof(sock->sun_family) + pipe_name.size() + 1;
+
+        // Open the socket and connect!
+        int sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        EXPECT_NE(-1, sock_fd) << ::strerror(errno);
+        int res = ::connect(sock_fd, (sockaddr*)sock.get(), sock_size);
+        EXPECT_NE(-1, res) << ::strerror(errno);
+
+        return event::wait(loop, 5ms).then([&, sock_fd](){
+            LW_TRACE("Delayed reading from pipe.");
+            memory::StackBuffer<100> buffer;
+            const std::size_t size = ::recv(sock_fd, buffer.data(), buffer.size(), 0);
+            EXPECT_EQ(contents.size(), size);
+            EXPECT_EQ(contents, memory::Buffer(buffer.data(), size));
+
+            return event::wait(loop, 5ms);
+        }).then([&, sock_fd, sock](){
+            LW_TRACE("Delayed closing of pipe.");
+            ::shutdown(sock_fd, SHUT_RDWR);
+
+            return event::wait(loop, 5ms);
+        });
+    }).then([&](){
+        LW_TRACE("Delayed closing of io::Pipe");
+        return pipe.close();
+    }).then([&](){
+        LW_TRACE("Pipe closed.");
+    });
+
+    started = true;
+    loop.run();
+    finished = true;
+
+    EXPECT_TRUE(received_client);
+    EXPECT_TRUE(write_completed);
     EXPECT_TRUE(listen_completed);
 }
 
