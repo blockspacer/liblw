@@ -331,5 +331,91 @@ TEST_F (PipeTests, BindWrite) {
     EXPECT_TRUE(listen_completed);
 }
 
+// ---------------------------------------------------------------------------------------------- //
+
+TEST_F (PipeTests, DISABLED_ConnectRead) {
+    io::Pipe pipe(loop, io::Pipe::ipc);
+    bool started = false;
+    bool finished = false;
+    bool received_client = false;
+    bool promise_called = false;
+    bool listen_completed = false;
+
+    // In a background thread, create the unix socket. This must be done in the background because
+    // the C interface for sockets is synchronous and we don't want it blocking the loop.
+
+
+    event::wait(loop, 5ms).then([&](){
+        LW_TRACE("Delayed connecting to pipe.");
+
+        // Prepare the socket structure.
+        auto sock = std::make_shared<sockaddr_un>();
+        sock->sun_family = AF_UNIX;
+        std::strcpy(sock->sun_path, pipe_name.c_str());
+        int sock_size = sizeof(sock->sun_family) + pipe_name.size() + 1;
+
+        // Open the socket and connect!
+        int sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        EXPECT_NE(-1, sock_fd) << ::strerror(errno);
+        int res = ::connect(sock_fd, (sockaddr*)sock.get(), sock_size);
+        EXPECT_NE(-1, res) << ::strerror(errno);
+
+        return event::wait(loop, 5ms).then([&, sock_fd](){
+            LW_TRACE("Delayed writing to pipe.");
+            ::send(sock_fd, content_str.c_str(), content_str.size(), 0);
+
+            return event::wait(loop, 5ms);
+        }).then([&, sock_fd, sock](){
+            LW_TRACE("Delayed closing of pipe.");
+            ::shutdown(sock_fd, SHUT_RDWR);
+
+            return event::wait(loop, 5ms);
+        });
+    }).then([&](){
+        LW_TRACE("Delayed closing of io::Pipe");
+        return pipe.close();
+    }).then([&](){
+        LW_TRACE("Pipe closed.");
+    });
+
+
+    //
+    // // Set up the pipe to read.
+    // pipe.bind(pipe_name);
+    // pipe.listen([&](const std::shared_ptr<event::BasicStream>& client){
+    //     LW_TRACE("Received a connection, accepting.");
+    //     EXPECT_TRUE(started);
+    //     EXPECT_FALSE(received_client);
+    //     received_client = true;
+    //
+    //     client->read([&](const std::shared_ptr<const memory::Buffer>& buffer){
+    //         LW_TRACE("Read " << buffer->size() << " bytes.");
+    //         EXPECT_TRUE(started);
+    //         EXPECT_FALSE(finished);
+    //         EXPECT_EQ(contents, *buffer);
+    //     }).then([&](const std::size_t bytes_read){
+    //         LW_TRACE("Read completed, " << bytes_read << " total bytes read.");
+    //         promise_called = true;
+    //         EXPECT_TRUE(started);
+    //         EXPECT_FALSE(finished);
+    //         EXPECT_EQ(contents.size(), bytes_read);
+    //     });
+    // }).then([&](){
+    //     LW_TRACE("Listening stopped.");
+    //     EXPECT_TRUE(received_client);
+    //     EXPECT_FALSE(listen_completed);
+    //     listen_completed = true;
+    // });
+    //
+    //
+    // started = true;
+    // loop.run();
+    // finished = true;
+    //
+    // EXPECT_TRUE(received_client);
+    // EXPECT_TRUE(promise_called);
+    // EXPECT_TRUE(listen_completed);
+}
+
 }
 }
