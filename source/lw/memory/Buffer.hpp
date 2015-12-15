@@ -23,15 +23,31 @@ typedef std::uint8_t byte;
 /// There are no protections in place for reading or writing outside the bounds of the buffer.
 class Buffer : public iter::Iterable<Buffer, byte*, const byte*> {
 public:
+    struct share_t{};
+    static const share_t share;
+
     typedef std::size_t size_type; ///< Type used for sizes.
 
     // ------------------------------------------------------------------------------------------ //
 
     /// @brief Creates an empty buffer object.
     Buffer(void):
-        m_capacity( 0       ),
-        m_data(     nullptr ),
-        m_own_data( false   )
+        m_capacity(0),
+        m_data(nullptr),
+        m_own_data(false)
+    {}
+
+    // ------------------------------------------------------------------------------------------ //
+
+    /// @brief Creates a buffer which shares its data with another one.
+    ///
+    /// This is similar to the move constructor except ownership is not taken from `other`.
+    ///
+    /// @param other The buffer to share the memory of.
+    Buffer(Buffer& other, const share_t&):
+        m_capacity(other.m_capacity),
+        m_data(other.m_data),
+        m_own_data(false)
     {}
 
     // ------------------------------------------------------------------------------------------ //
@@ -44,9 +60,9 @@ public:
     /// @param capacity The size of the buffer in bytes.
     /// @param own_data Flag indicating if this `Buffer` should take ownership of the memory.
     Buffer(byte* buffer, const size_type& capacity, const bool own_data = false):
-        m_capacity( capacity        ),
-        m_data(     (byte*)buffer   ),
-        m_own_data( own_data        )
+        m_capacity(capacity),
+        m_data(buffer),
+        m_own_data(own_data)
     {}
 
     // ------------------------------------------------------------------------------------------ //
@@ -65,9 +81,9 @@ public:
     ///
     /// @param other The buffer to move.
     Buffer(Buffer&& other):
-        m_capacity( other.m_capacity    ),
-        m_data(     other.m_data        ),
-        m_own_data( other.m_own_data     )
+        m_capacity(other.m_capacity),
+        m_data(other.m_data),
+        m_own_data(other.m_own_data)
     {
         other.m_own_data = false;
     }
@@ -82,9 +98,9 @@ public:
     /// @param other    The buffer to move the ownership from.
     /// @param size     The new size to report with.
     Buffer(Buffer&& other, const std::size_t size):
-        m_capacity( size            ),
-        m_data(     other.m_data    ),
-        m_own_data( other.m_own_data )
+        m_capacity(size),
+        m_data(other.m_data),
+        m_own_data(other.m_own_data)
     {
         other.m_own_data = false;
     }
@@ -95,9 +111,9 @@ public:
     ///
     /// @param size The number of bytes to allocate.
     explicit Buffer(const size_type& size):
-        m_capacity( size            ),
-        m_data(     new byte[size]  ),
-        m_own_data( true            )
+        m_capacity(size),
+        m_data(new byte[size]),
+        m_own_data(true)
     {}
 
     // ------------------------------------------------------------------------------------------ //

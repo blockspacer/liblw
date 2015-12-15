@@ -4,6 +4,10 @@
 namespace lw {
 namespace memory {
 
+const Buffer::share_t Buffer::share{};
+
+// ---------------------------------------------------------------------------------------------- //
+
 void Buffer::_xor(const Buffer& lhs, const Buffer& rhs, Buffer& out){
     for (size_type i = 0; i < out.size(); ++i) {
         out.m_data[i] = lhs.m_data[i] ^ rhs.m_data[i];
