@@ -1,8 +1,13 @@
 
 source scripts/common.sh
 
-CC=gcc
-CXX=g++
+if exe_exists gcc-5; then
+    CC=gcc-5
+    CXX=g++-5
+else
+    CC=gcc
+    CXX=g++
+fi
 
 function has_gcc(){
     exe_exists $CC && exe_exists $CXX
