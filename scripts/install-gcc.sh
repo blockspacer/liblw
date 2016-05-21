@@ -9,8 +9,8 @@ function has_gcc(){
 }
 
 function has_right_gcc_version(){
-    local gcc_5x=`$CC --version | head -1 | grep '5\.0\.[[:digit:]]'`
-    if [ "$gcc_49x" ]; then
+    local gcc_version=`$CC --version | head -1 | grep '5\.[[:digit:]]\.[[:digit:]]'`
+    if [ "$gcc_version" ]; then
         return 0
     else
         return 1
@@ -46,11 +46,11 @@ function install_gcc_homebrew(){
     fi
 }
 
-function install_gcc_yum(){
+function install_gcc_dnf(){
     CC=gcc
     CXX=g++
     if ! has_gcc; then
-        sudo yum install gcc gcc-c++
+        sudo dnf install gcc gcc-c++
     fi
 
     if ! has_right_gcc_version; then
@@ -65,7 +65,7 @@ function install_gcc(){
     elif exe_exists brew; then
         install_gcc_homebrew
     else
-        install_gcc_yum
+        install_gcc_dnf
     fi
 }
 
