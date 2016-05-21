@@ -18,8 +18,8 @@ struct BufferTests : public testing::Test {};
 
 TEST_F (BufferTests, DefaultConstructor) {
     memory::Buffer buffer;
-    EXPECT_EQ(0, buffer.capacity());
-    EXPECT_EQ(0, buffer.size());
+    EXPECT_EQ(0u, buffer.capacity());
+    EXPECT_EQ(0u, buffer.size());
     EXPECT_EQ(nullptr, buffer.data());
 }
 
@@ -87,12 +87,12 @@ TEST_F (BufferTests, MoveResizeConstructor) {
     memory::Buffer *buffer = new memory::Buffer((memory::byte*)data, size);
     memory::Buffer *buffer2 = new memory::Buffer(std::move(*buffer), 5);
 
-    EXPECT_EQ(5, buffer2->size());
+    EXPECT_EQ(5u, buffer2->size());
     EXPECT_EQ((memory::byte*)data, buffer2->data());
 
     EXPECT_NO_THROW({ delete buffer; });
 
-    EXPECT_EQ(5, buffer2->size());
+    EXPECT_EQ(5u, buffer2->size());
     EXPECT_EQ((memory::byte*)data, buffer2->data());
 
     EXPECT_NO_THROW({ delete buffer2; });
@@ -102,7 +102,7 @@ TEST_F (BufferTests, MoveResizeConstructor) {
 
 TEST_F (BufferTests, SizedAllocationConstructor) {
     memory::Buffer buffer(25);
-    EXPECT_EQ(25, buffer.size());
+    EXPECT_EQ(25u, buffer.size());
 }
 
 // ---------------------------------------------------------------------------------------------- //

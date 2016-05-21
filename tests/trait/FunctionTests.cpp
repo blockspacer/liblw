@@ -91,7 +91,6 @@ struct IsTupleCallableTests : public FunctionTests {};
 // ---------------------------------------------------------------------------------------------- //
 
 TEST_F(IsTupleCallableTests, Simple){
-    auto intFunc = [](int i){};
     EXPECT_TRUE(trait::is_tuple_callable<int_func_type(int_tuple_type)>::value);
     EXPECT_TRUE(trait::is_tuple_callable<int_func_type(float_tuple_type)>::value);
     EXPECT_TRUE(trait::is_tuple_callable<int_func_type(short_tuple_type)>::value);
