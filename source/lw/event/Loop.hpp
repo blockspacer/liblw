@@ -46,6 +46,14 @@ public:
 
     // ---------------------------------------------------------------------- //
 
+    /// @brief Executes a task on the event loop.
+    ///
+    /// This function can be called from any thread and the task will be posted
+    /// safely to this loop's execution thread.
+    ///
+    /// @tparam Func The type of the functor to be executed.
+    ///
+    /// @param func The function to execute on the event loop.
     template<
         typename Func,
         typename = typename std::enable_if<trait::is_callable<Func()>::value>::type
