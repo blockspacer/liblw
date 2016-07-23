@@ -1,5 +1,9 @@
 #pragma once
 
+#include <functional>
+
+#include "lw/trait.hpp"
+
 struct uv_loop_s;
 
 namespace lw {
@@ -19,30 +23,42 @@ public:
         m_loop(other.m_loop)
     {}
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Extendable destructor.
     virtual ~Loop(void);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Runs all tasks in the loop.
     ///
-    /// As long as there are items scheduled on the event loop, this method will not return. Once
-    /// all tasks complete, and there are no connections keeping the loop alive, this method will
-    /// return.
+    /// As long as there are items scheduled on the event loop, this method will
+    /// not return. Once all tasks complete, and there are no connections
+    /// keeping the loop alive, this method will return.
     void run(void);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Gives access to the native loop handle.
     uv_loop_s* lowest_layer(void){
         return m_loop;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
+
+    template<
+        typename Func,
+        typename = typename std::enable_if<trait::is_callable<Func()>::value>::type
+    >
+    void post(Func&& func){
+        _post(std::function<void()>(std::forward<Func>(func)));
+    }
+
+    // ---------------------------------------------------------------------- //
 private:
     uv_loop_s* m_loop;
+
+    void _post(std::function<void()>&& func);
 };
 
 }

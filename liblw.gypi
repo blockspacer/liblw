@@ -88,6 +88,7 @@
     }, {
         "target_name": "liblw-tests",
         "type": "executable",
+        "cflags": ["-Werror"],
         "dependencies": ["liblw", "libgtest"],
         "include_dirs": ["./tests"],
         "sources": [
@@ -109,7 +110,7 @@
             "tests/memory/BufferTests.cpp",
 
             "tests/trait/FunctionTests.cpp",
-            "tests/trait/TupleTests.cpp"
+            "tests/trait/TupleTests.cpp",
         ]
     }]
 }
