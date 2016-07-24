@@ -58,7 +58,7 @@ public:
         typename Func,
         typename = typename std::enable_if<trait::is_callable<Func()>::value>::type
     >
-    void post(Func&& func){
+    void post(Func&& func) {
         _post(std::function<void()>(std::forward<Func>(func)));
     }
 

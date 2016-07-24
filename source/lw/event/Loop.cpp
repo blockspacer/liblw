@@ -16,14 +16,14 @@ Loop::Loop(void):
 
 // -------------------------------------------------------------------------- //
 
-Loop::~Loop(void){
+Loop::~Loop(void) {
     uv_loop_close(m_loop);
     std::free(m_loop);
 }
 
 // -------------------------------------------------------------------------- //
 
-void Loop::run(void){
+void Loop::run(void) {
     uv_run(m_loop, UV_RUN_DEFAULT);
 }
 
@@ -33,7 +33,7 @@ void Loop::_post(std::function<void()>&& func) {
     typedef std::function<void()> func_type;
 
     uv_async_t* async = (uv_async_t*)malloc(sizeof(uv_async_t));
-    uv_async_init(lowest_layer(), async, [](uv_async_t* async) {
+    uv_async_init(lowest_layer(), async, [](uv_async_t* async) mutable {
         auto* func = (func_type*)async->data;
         std::exception_ptr err;
 
