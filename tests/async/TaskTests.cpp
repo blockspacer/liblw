@@ -26,15 +26,16 @@ struct TaskTests : public testing::Test {
     }
 };
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(TaskTests, Execute_Void_Void) {
-    auto fn = [&]() {
+    auto task = async::make_task<void>(loop, [&]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         ++task_executed;
         EXPECT_NE(loop_thread, std::this_thread::get_id());
-    };
+    });
 
-    async::Task<void, decltype(fn)> task{loop, fn};
     task().then([&]() {
         ++then_executed;
         EXPECT_EQ(loop_thread, std::this_thread::get_id());
@@ -47,16 +48,17 @@ TEST_F(TaskTests, Execute_Void_Void) {
     EXPECT_EQ(1, then_executed);
 }
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(TaskTests, Execute_Void_Int) {
-    auto fn = [&](int i) {
+    auto task = async::make_task<void>(loop, [&](int i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         ++task_executed;
         EXPECT_NE(loop_thread, std::this_thread::get_id());
         EXPECT_EQ(4, i);
-    };
+    });
 
-    async::Task<void, decltype(fn)> task{loop, fn};
     task(4).then([&]() {
         ++then_executed;
         EXPECT_EQ(loop_thread, std::this_thread::get_id());
@@ -69,16 +71,17 @@ TEST_F(TaskTests, Execute_Void_Int) {
     EXPECT_EQ(1, then_executed);
 }
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(TaskTests, Execute_Int_Void) {
-    auto fn = [&]() {
+    auto task = async::make_task<int>(loop, [&]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         ++task_executed;
         EXPECT_NE(loop_thread, std::this_thread::get_id());
         return 8;
-    };
+    });
 
-    async::Task<int, decltype(fn)> task{loop, fn};
     task().then([&](int res) {
         ++then_executed;
         EXPECT_EQ(loop_thread, std::this_thread::get_id());
@@ -92,17 +95,18 @@ TEST_F(TaskTests, Execute_Int_Void) {
     EXPECT_EQ(1, then_executed);
 }
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(TaskTests, Execute_Int_Int) {
-    auto fn = [&](int i) {
+    auto task = async::make_task<int>(loop, [&](int i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         ++task_executed;
         EXPECT_NE(loop_thread, std::this_thread::get_id());
         EXPECT_EQ(4, i);
         return i * 2;
-    };
+    });
 
-    async::Task<int, decltype(fn)> task{loop, fn};
     task(4).then([&](int res) {
         ++then_executed;
         EXPECT_EQ(loop_thread, std::this_thread::get_id());
