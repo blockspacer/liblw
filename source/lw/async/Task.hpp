@@ -79,8 +79,9 @@ namespace _details {
                 args_tuple{std::forward_as_tuple(std::forward<Args>(args)...)}
             ]() {
                 try {
-                    // Attempt to post the result directly to the loop. If the func
-                    // throws, the post call will not be made.
+                    // Execute the function and then post the resolution to the
+                    // event loop. Since this is for void types, we don't need
+                    // to pass the result through.
                     trait::apply(args_tuple, state->func);
                     state->loop.post([thread, promise]() {
                         if (thread->joinable()) {
@@ -90,8 +91,8 @@ namespace _details {
                     });
                 }
                 catch (const error::Exception& err) {
-                    // In case of error, post to the main loop and then reject the
-                    // promise.
+                    // In case of error, post to the main loop and then reject
+                    // the promise.
                     state->loop.post([thread, promise, err]() {
                         if (thread->joinable()) {
                             thread->join();
@@ -158,8 +159,8 @@ Task<Result, Func> make_task(event::Loop& loop, Func&& func) {
     return Task<Result, Func>(loop, std::forward<Func>(func));
 }
 
-template<typename Result, typename Func>
-event::Future<Result> execute(event::Loop& loop, Func&& func) {
+template<typename Func>
+typename event::FutureResultOf<Func()>::type execute(event::Loop& loop, Func&& func) {
     return make_task(loop, std::forward<Func>(func))();
 }
 
