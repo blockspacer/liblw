@@ -49,6 +49,28 @@ TEST_F(LoopBasicTests, Post) {
 
 // -------------------------------------------------------------------------- //
 
+TEST_F(LoopBasicTests, PostThrow) {
+    bool caught = false;
+    int executed = 0;
+    loop.post([&]() {
+        ++executed;
+        throw "foobar";
+    });
+
+    EXPECT_EQ(0, executed);
+    try {
+        loop.run();
+    }
+    catch (const char* err) {
+        caught = true;
+        EXPECT_EQ("foobar", err);
+    }
+    EXPECT_TRUE(caught);
+    EXPECT_EQ(1, executed);
+}
+
+// -------------------------------------------------------------------------- //
+
 TEST_F(LoopBasicTests, PostFromThread) {
     int executed = 0;
     std::thread::id loop_thread = std::this_thread::get_id();
