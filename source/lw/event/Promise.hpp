@@ -12,59 +12,60 @@ namespace event {
 
 LW_DEFINE_EXCEPTION(PromiseError);
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
-template<typename T>
+template <typename T>
 class Future;
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
-/// @brief Determines if the given variable is a `Future`, or derives publicly from `Future`.
+/// @brief  Determines if the given variable is a `Future`, or derives publicly
+///         from `Future`.
 ///
 /// @tparam T The type to check.
-template<typename T>
-struct IsFuture : public std::integral_constant<bool, false> {};
+template <typename T>
+struct IsFuture : public std::false_type {};
 
-template<typename T>
-struct IsFuture<Future<T>> : public std::integral_constant<bool, true> {};
+template <typename T>
+struct IsFuture<Future<T>> : public std::true_type {};
 
-template<template<typename> class T, typename Value>
+template <template <typename> class T, typename Value>
 struct IsFuture<T<Value>> :
     public std::integral_constant<bool, std::is_base_of<Future<Value>, T<Value>>::value>
 {};
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 /// @brief Breaks down a type to the highest non-future layer.
 ///
 /// @tparam T The type to break down.
-template<typename T>
+template <typename T>
 struct UnwrapFuture {
     typedef T result_type;  ///< The type that will be promised.
     typedef Future<T> type; ///< The type of a future for this type.
 };
 
-template<typename T>
+template <typename T>
 struct UnwrapFuture<Future<T>> : public UnwrapFuture<T> {};
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 /// @brief Determines the result of a function as a future.
-template<typename T>
+template <typename T>
 struct FutureResultOf;
 
-template<typename F, typename... Args>
+template <typename F, typename... Args>
 struct FutureResultOf<F(Args...)> :
     public UnwrapFuture<typename std::result_of<F(Args...)>::type>
 {};
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 /// @brief `Promise`s and `Future`s allow for chaining callbacks without nesting.
 ///
-/// A `Promise` is the active side of the pair. Asynchronous functions create a promise and later
-/// fulfill it by either resolving or rejecting the promise.
-template<typename T = void>
+/// A `Promise` is the active side of the pair. Asynchronous functions create a
+/// promise and later fulfill it by either resolving or rejecting the promise.
+template <typename T = void>
 class Promise {
 public:
     /// @brief Default construction.
@@ -77,12 +78,12 @@ public:
         m_state->reject     = nullptr;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief No copying!
     Promise(const Promise&) = delete;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Moves the promise from `other` to `this`.
     Promise(Promise&& other):
@@ -91,12 +92,12 @@ public:
         other.m_state = nullptr;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Returns a future associated with this promise.
     Future<T> future(void);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Resolves the promise as a success.
     void resolve(T&& value){
@@ -106,14 +107,14 @@ public:
         }
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @copydoc Promise::resolve(T&&)
     void resolve(const T& value){
         resolve(T(value));
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Rejects the promise as a failure.
     void reject(const error::Exception& err){
@@ -126,7 +127,7 @@ public:
         }
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Resets the promise's internal state so that it can be reused.
     ///
@@ -141,33 +142,33 @@ public:
         m_state->reject     = nullptr;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been resolved.
     bool is_resolved(void) const {
         return m_state->resolved;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been rejected.
     bool is_rejected(void) const {
         return m_state->rejected;
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been either resolved or rejected.
     bool is_finished(void) const {
         return is_resolved() || is_rejected();
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief No copying!
     Promise& operator=(const Promise&) = delete;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Moves the promise from `other` into `this`.
     Promise& operator=(Promise&& other){
@@ -177,10 +178,10 @@ public:
     }
 
 private:
-    template<typename Type>
+    template <typename Type>
     friend class ::lw::event::Future;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief The container for the shared state between promises and futures.
     struct _SharedState {
@@ -191,19 +192,19 @@ private:
     };
     typedef std::shared_ptr<_SharedState> _SharedStatePtr;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief The state of the promise.
     _SharedStatePtr m_state;
 };
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 /// @brief The passive half of the `Promise`-`Future` pair.
 ///
-/// `Future`s are the requester's handle on an asynchronous event. They allow callbacks to be
-/// registered for after it has been started.
-template<typename T = void>
+/// `Future`s are the requester's handle on an asynchronous event. They allow
+/// callbacks to be registered for after it has been started.
+template <typename T = void>
 class Future {
 public:
     /// @brief The type promised by this future.
@@ -212,48 +213,48 @@ public:
     /// @brief The type of Promise that made this future.
     typedef Promise<T> promise_type;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
-    template<typename Func>
+    template <typename Func>
     auto then(Func&& func){
         return then(std::forward<Func>(func), nullptr);
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
-    template<typename Result, typename Func>
+    template <typename Result, typename Func>
     auto then(Func&& func){
         return then<Result>(std::forward<Func>(func), nullptr);
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
-    template<typename Resolve, typename Reject>
+    template <typename Resolve, typename Reject>
     auto then(Resolve&& resolve, Reject&& reject){
         return _then(std::forward<Resolve>(resolve), std::forward<Reject>(reject));
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
-    template<typename Result, typename Resolve, typename Reject>
+    template <typename Result, typename Resolve, typename Reject>
     auto then(Resolve&& resolve, Reject&& reject){
         return _then<Result>(std::forward<Resolve>(resolve), std::forward<Reject>(reject));
     }
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Connects this promise to the one provided.
     ///
     /// @param promise The promise to resolve/reject with this one.
     void then(promise_type&& promise);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
 private:
-    template<typename Type>
+    template <typename Type>
     friend class ::lw::event::Promise;
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Only `Promise`s can construct us.
     ///
@@ -262,7 +263,7 @@ private:
         m_state(state)
     {}
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Chaining for generic functors.
     ///
@@ -272,7 +273,7 @@ private:
     /// @param resolve The functor to call when this one is resolved.
     ///
     /// @return A new future, for when the provided `resolve` completes its action.
-    template<
+    template <
         typename Result,
         typename Resolve,
         typename Reject,
@@ -280,7 +281,7 @@ private:
     >
     Future<Result> _then(Resolve&& resolve, Reject&& reject);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Chaining for generic functors promising nothing.
     ///
@@ -289,14 +290,14 @@ private:
     /// @param resolve The functor to call when this one is resolved.
     ///
     /// @return A new future, for when the provided `resolve` completes its action.
-    template<
+    template <
         typename Resolve,
         typename Reject,
         typename = typename std::result_of<Resolve(T&&, Promise<>&&)>::type
     >
     Future<> _then(Resolve&& resolve, Reject&& reject);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Chaining for `Future`-returning functors.
     ///
@@ -305,7 +306,7 @@ private:
     /// @param resolve The functor to call when this one is ready.
     ///
     /// @return A `Future` which will be resolved by `resolve`.
-    template<
+    template <
         typename Resolve,
         typename Reject,
         typename ResolveResult = typename std::result_of<Resolve(T&&)>::type,
@@ -313,7 +314,7 @@ private:
     >
     Future<typename ResolveResult::result_type> _then(Resolve&& resolve, Reject&& reject);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Chaining for value-returning functors (i.e. synchronous ones).
     ///
@@ -322,7 +323,7 @@ private:
     /// @param resolve A synchronous functor returning some value.
     ///
     /// @return A `Future` which will be resolved with the return value from `resolve`.
-    template<
+    template <
         typename Resolve,
         typename Reject,
         typename ResolveResult = typename std::result_of<Resolve(T&&)>::type,
@@ -333,7 +334,7 @@ private:
     >
     Future<ResolveResult> _then(Resolve&& resolve, Reject&& reject);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Chaining for void-returning synchronous functors.
     ///
@@ -342,7 +343,7 @@ private:
     /// @param resolve A synchronous functor with no return value.
     ///
     /// @return A `Future` which will be resolved `resolve` runs.
-    template<
+    template <
         typename Resolve,
         typename Reject,
         typename ResolveResult = typename std::result_of<Resolve(T&&)>::type,
@@ -350,7 +351,7 @@ private:
     >
     Future<> _then(Resolve&& resolve, Reject&& reject);
 
-    // ------------------------------------------------------------------------------------------ //
+    // ---------------------------------------------------------------------- //
 
     /// @brief Our internal shared state.
     typename promise_type::_SharedStatePtr m_state;
