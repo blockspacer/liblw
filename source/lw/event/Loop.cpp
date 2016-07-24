@@ -33,10 +33,11 @@ void Loop::_post(std::function<void()>&& func) {
     typedef std::function<void()> func_type;
 
     uv_async_t* async = (uv_async_t*)malloc(sizeof(uv_async_t));
-    uv_async_init(lowest_layer(), async, [](uv_async_t* async) mutable {
-        auto* func = (func_type*)async->data;
+    uv_async_init(lowest_layer(), async, [](uv_async_t* async) {
+        func_type* func = (func_type*)async->data;
         std::exception_ptr err;
 
+        // Try executing the function.
         try {
             (*func)();
         }
@@ -44,11 +45,13 @@ void Loop::_post(std::function<void()>&& func) {
             err = std::current_exception();
         }
 
-        uv_close((uv_handle_t*)async, nullptr);
+        // Cleanup the resources for this.
+        uv_close((uv_handle_t*)async, [](uv_handle_t* async) {
+            delete (func_type*)async->data;
+            free((uv_async_t*)async);
+        });
 
-        delete func;
-        free(async);
-
+        // If the functor errored, rethrow that.
         if (err) {
             std::rethrow_exception(err);
         }
