@@ -12,9 +12,13 @@ struct LoopBasicTests : public testing::Test {
     event::Loop loop;
 };
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(LoopBasicTests, HelloWorld){
     loop.run();
 }
+
+// -------------------------------------------------------------------------- //
 
 TEST_F(LoopBasicTests, IdleLoop){
     const std::uint64_t ticks = 10000;
@@ -32,6 +36,8 @@ TEST_F(LoopBasicTests, IdleLoop){
     EXPECT_EQ(ticks, counter);
 }
 
+// -------------------------------------------------------------------------- //
+
 TEST_F(LoopBasicTests, Post) {
     int executed = 0;
     loop.post([&]() { ++executed; });
@@ -40,6 +46,8 @@ TEST_F(LoopBasicTests, Post) {
     loop.run();
     EXPECT_EQ(1, executed);
 }
+
+// -------------------------------------------------------------------------- //
 
 TEST_F(LoopBasicTests, PostFromThread) {
     int executed = 0;

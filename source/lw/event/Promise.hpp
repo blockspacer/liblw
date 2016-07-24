@@ -68,8 +68,12 @@ struct FutureResultOf<F(Args...)> :
 template <typename T = void>
 class Promise {
 public:
+    typedef Future<T> future_type;
+
+    // ---------------------------------------------------------------------- //
+
     /// @brief Default construction.
-    Promise(void):
+    Promise():
         m_state(new _SharedState())
     {
         m_state->resolved   = false;
@@ -95,7 +99,7 @@ public:
     // ---------------------------------------------------------------------- //
 
     /// @brief Returns a future associated with this promise.
-    Future<T> future(void);
+    future_type future();
 
     // ---------------------------------------------------------------------- //
 
@@ -132,7 +136,7 @@ public:
     /// @brief Resets the promise's internal state so that it can be reused.
     ///
     /// @throws PromiseError If the promise is in an unfinished state.
-    void reset(void){
+    void reset(){
         if (!is_finished()) {
             throw PromiseError(1, "Cannot reset an unfinished promise.");
         }
@@ -145,21 +149,21 @@ public:
     // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been resolved.
-    bool is_resolved(void) const {
+    bool is_resolved() const {
         return m_state->resolved;
     }
 
     // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been rejected.
-    bool is_rejected(void) const {
+    bool is_rejected() const {
         return m_state->rejected;
     }
 
     // ---------------------------------------------------------------------- //
 
     /// @brief Indicates if the promise has been either resolved or rejected.
-    bool is_finished(void) const {
+    bool is_finished() const {
         return is_resolved() || is_rejected();
     }
 
