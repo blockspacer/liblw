@@ -23,6 +23,7 @@
         "sources": [
             "source/lw/Application.cpp",
             "source/lw/Application.hpp",
+            "source/lw/async.hpp",
             "source/lw/event.hpp",
             "source/lw/fs.hpp",
             "source/lw/iter.hpp",
@@ -31,6 +32,8 @@
             "source/lw/pp.hpp",
             "source/lw/Singleton.hpp",
             "source/lw/trait.hpp",
+
+            "source/lw/async/Task.hpp",
 
             "source/lw/event/BasicStream.cpp",
             "source/lw/event/BasicStream.hpp",
@@ -93,6 +96,8 @@
         "include_dirs": ["./tests"],
         "sources": [
             "tests/main.cpp",
+
+            "tests/async/TaskTests.cpp",
 
             "tests/event/EmitterTests.cpp",
             "tests/event/LoopBasicTests.cpp",

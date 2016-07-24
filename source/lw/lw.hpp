@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lw/async.hpp"
 #include "lw/error.hpp"
 #include "lw/event.hpp"
 #include "lw/fs.hpp"
