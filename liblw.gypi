@@ -105,6 +105,7 @@
             "tests/event/PromiseIntSynchronousTests.cpp",
             "tests/event/PromiseVoidSynchronousTests.cpp",
             "tests/event/PromiseRejectionTests.cpp",
+            "tests/event/PromiseTraitsTests.cpp",
             "tests/event/TimeoutHelperTests.cpp",
             "tests/event/TimeoutTests.cpp",
             "tests/event/UtilityTests.cpp",

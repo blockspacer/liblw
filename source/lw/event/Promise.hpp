@@ -19,20 +19,26 @@ class Future;
 
 // -------------------------------------------------------------------------- //
 
+namespace _details {
+    template <template <typename> class T>
+    struct conversion_test {
+        template <typename U>
+        conversion_test(const T<U>&);
+
+        template <typename U>
+        static U uparam(const T<U>&);
+    };
+}
+
 /// @brief  Determines if the given variable is a `Future`, or derives publicly
 ///         from `Future`.
 ///
 /// @tparam T The type to check.
 template <typename T>
-struct IsFuture : public std::false_type {};
-
-template <typename T>
-struct IsFuture<Future<T>> : public std::true_type {};
-
-template <template <typename> class T, typename Value>
-struct IsFuture<T<Value>> :
-    public std::integral_constant<bool, std::is_base_of<Future<Value>, T<Value>>::value>
-{};
+struct IsFuture : public std::integral_constant<
+    bool,
+    std::is_convertible<T, _details::conversion_test<Future>>::value
+> {};
 
 // -------------------------------------------------------------------------- //
 
