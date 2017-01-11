@@ -9,7 +9,7 @@ function has_gcc(){
 }
 
 function has_right_gcc_version(){
-    local gcc_version=`$CC --version | head -1 | grep '5\.[[:digit:]]\.[[:digit:]]'`
+    local gcc_version=`$CC --version | head -1 | grep '[56]\.[[:digit:]]\.[[:digit:]]'`
     if [ "$gcc_version" ]; then
         return 0
     else
