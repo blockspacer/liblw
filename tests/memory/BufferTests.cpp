@@ -141,7 +141,7 @@ TEST_F (BufferTests, Destructor) {
 
     // Should not delete the associated data by default.
     EXPECT_NO_THROW({ delete buffer; });
-    EXPECT_NO_THROW({ delete data; });
+    EXPECT_NO_THROW({ delete[] data; });
 }
 
 // ---------------------------------------------------------------------------------------------- //

@@ -10,7 +10,7 @@ void Buffer::_xor(const Buffer& lhs, const Buffer& rhs, Buffer& out){
     }
 }
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 Buffer& Buffer::operator=(Buffer&& other){
     // If own our current data, delete it first.
@@ -30,7 +30,7 @@ Buffer& Buffer::operator=(Buffer&& other){
     return *this;
 }
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 bool Buffer::operator==(const Buffer& other) const {
     if (size() != other.size()){
@@ -43,7 +43,7 @@ bool Buffer::operator==(const Buffer& other) const {
     return std::memcmp(data(), other.data(), size()) == 0;
 }
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 Buffer& Buffer::operator^=(const Buffer& other){
     // Stupid Windows defines a "min" macro that conflicts with std::min.
@@ -53,7 +53,7 @@ Buffer& Buffer::operator^=(const Buffer& other){
     return *this;
 }
 
-// ---------------------------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
 Buffer Buffer::operator^(const Buffer& other) const {
     // Prepare our buffers.
@@ -71,7 +71,7 @@ Buffer Buffer::operator^(const Buffer& other) const {
         this->size() - tmp.size(),
         output.m_data + tmp.size()
     );
-    return std::move(output);
+    return output; // Do not move. Trust the compiler.
 }
 
 }
