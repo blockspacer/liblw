@@ -7,13 +7,14 @@ function install_gtest(){
         return 0
     fi
 
-    gtest_version=1.7.0
-    gtest_dir=gtest-$gtest_version
-    gtest_zip=$gtest_dir.zip
-    wget "https://googletest.googlecode.com/files/$gtest_zip"
+    gtest_version=1.8.0
+    gtest_dir=googletest-release-$gtest_version
+    gtest_zip=release-$gtest_version.zip
+    wget "https://github.com/google/googletest/archive/$gtest_zip"
     unzip "$gtest_zip"
     rm "$gtest_zip"
-    mv "$gtest_dir" "$DEPENDENCIES_DIR/gtest"
+    mv "$gtest_dir/googletest" "$DEPENDENCIES_DIR/gtest"
+    rm -rf "$gtest_dir"
 }
 
 export -f install_gtest

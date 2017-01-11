@@ -82,12 +82,15 @@
     }, {
         "target_name": "libgtest",
         "type": "static_library",
-        "include_dirs": ["./external/gtest/include"],
-        "cflags": ["-std=c++1y"],
+        "include_dirs": [
+          "./external/gtest/include",
+          "./external/gtest/"
+        ],
+        "cflags": ["-std=c++1y", "-pthread"],
         "direct_dependent_settings": {
             "include_dirs": ["./external/gtest/include"]
         },
-        "sources": ["external/gtest/fused-src/gtest/gtest-all.cc"]
+        "sources": ["external/gtest/src/gtest-all.cc"]
     }, {
         "target_name": "liblw-tests",
         "type": "executable",
