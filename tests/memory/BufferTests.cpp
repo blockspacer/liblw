@@ -16,7 +16,7 @@ struct BufferTests : public testing::Test {};
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, DefaultConstructor) {
+TEST_F(BufferTests, DefaultConstructor) {
     memory::Buffer buffer;
     EXPECT_EQ(0u, buffer.capacity());
     EXPECT_EQ(0u, buffer.size());
@@ -25,7 +25,7 @@ TEST_F (BufferTests, DefaultConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, WrapConstructor) {
+TEST_F(BufferTests, WrapConstructor) {
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
         'W', 'o', 'r', 'l', 'd', '!', '\0'
@@ -44,7 +44,7 @@ TEST_F (BufferTests, WrapConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, MoveConstructor) {
+TEST_F(BufferTests, MoveConstructor) {
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
         'W', 'o', 'r', 'l', 'd', '!', '\0'
@@ -66,7 +66,7 @@ TEST_F (BufferTests, MoveConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, MoveOwnedConstructor) {
+TEST_F(BufferTests, MoveOwnedConstructor) {
     const char* str = "Hello, World!";
     const std::size_t size = std::strlen(str);
     char* data = new char[50];
@@ -88,7 +88,7 @@ TEST_F (BufferTests, MoveOwnedConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, MoveResizeConstructor) {
+TEST_F(BufferTests, MoveResizeConstructor) {
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
         'W', 'o', 'r', 'l', 'd', '!', '\0'
@@ -110,14 +110,14 @@ TEST_F (BufferTests, MoveResizeConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, SizedAllocationConstructor) {
+TEST_F(BufferTests, SizedAllocationConstructor) {
     memory::Buffer buffer(25);
     EXPECT_EQ(25u, buffer.size());
 }
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, IterableCopyConstructor) {
+TEST_F(BufferTests, IterableCopyConstructor) {
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
         'W', 'o', 'r', 'l', 'd', '!', '\0'
@@ -148,7 +148,7 @@ TEST_F (BufferTests, IterableCopyConstructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, Destructor) {
+TEST_F(BufferTests, Destructor) {
     memory::byte* data = new memory::byte[25];
     memory::Buffer* buffer = new memory::Buffer(data, 25);
 
@@ -159,7 +159,7 @@ TEST_F (BufferTests, Destructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, OwnedDataDestructor) {
+TEST_F(BufferTests, OwnedDataDestructor) {
     memory::byte* data = new memory::byte[25];
     memory::Buffer* buffer = new memory::Buffer(data, 25, true);
 
@@ -170,7 +170,7 @@ TEST_F (BufferTests, OwnedDataDestructor) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, SetMemory) {
+TEST_F(BufferTests, SetMemory) {
     memory::Buffer buffer(25);
     buffer.set_memory((memory::byte)'a');
     for (const auto& c : buffer) {
@@ -185,7 +185,7 @@ TEST_F (BufferTests, SetMemory) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, BeginEndCopy) {
+TEST_F(BufferTests, BeginEndCopy) {
     const memory::byte* bufferValue = (memory::byte*)"Hello\0\0\0\0\0";
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
@@ -201,7 +201,7 @@ TEST_F (BufferTests, BeginEndCopy) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, SizedCopy) {
+TEST_F(BufferTests, SizedCopy) {
     const memory::byte* bufferValue = (memory::byte*)"Hello\0\0\0\0\0";
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
@@ -217,7 +217,7 @@ TEST_F (BufferTests, SizedCopy) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, MoveOperator) {
+TEST_F(BufferTests, MoveOperator) {
     char data[] = {
         'H', 'e', 'l', 'l', 'o', ',', ' ',
         'W', 'o', 'r', 'l', 'd', '!', '\0'
@@ -240,7 +240,7 @@ TEST_F (BufferTests, MoveOperator) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, MoveOwnedOperator) {
+TEST_F(BufferTests, MoveOwnedOperator) {
     const char* str = "Hello, World!";
     const std::size_t size = std::strlen(str);
     char* data = new char[50];
@@ -263,7 +263,7 @@ TEST_F (BufferTests, MoveOwnedOperator) {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F (BufferTests, EqualityOperator) {
+TEST_F(BufferTests, EqualityOperator) {
     memory::Buffer b1(10);
     memory::Buffer b2(10);
     memory::Buffer b3(10);
@@ -279,6 +279,23 @@ TEST_F (BufferTests, EqualityOperator) {
     EXPECT_NE(b1, b3);
     EXPECT_NE(b1, b4);
     EXPECT_EQ(b1, b5);
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(BufferTests, XOrOperator) {
+    memory::Buffer b1(1);
+    memory::Buffer b2(1);
+    memory::Buffer b3(1);
+
+    b1.set_memory(0x0a);
+    b2.set_memory(0xb0);
+    b3.set_memory(0xba);
+
+    EXPECT_EQ(b3, b1 ^ b2);
+
+    b1 ^= b2;
+    EXPECT_EQ(b3, b1);
 }
 
 }
