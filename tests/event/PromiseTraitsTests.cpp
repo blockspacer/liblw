@@ -53,11 +53,19 @@ TEST_F(PromiseTraitsTests, UnwrapFuture) {
 
     EXPECT_SAME_TYPE(event::UnwrapFuture<event::Future<>>::type, event::Future<void>);
     EXPECT_SAME_TYPE(event::UnwrapFuture<event::Future<int>>::type, event::Future<int>);
-    EXPECT_SAME_TYPE(event::UnwrapFuture<TemplateSubclass<int>>::type, event::Future<int>);
-    EXPECT_SAME_TYPE(event::UnwrapFuture<Subclass>::type, event::Future<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<TemplateSubclass<int>>::type, TemplateSubclass<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<Subclass>::type, Subclass);
     EXPECT_SAME_TYPE(event::UnwrapFuture<void>::type, event::Future<void>);
     EXPECT_SAME_TYPE(event::UnwrapFuture<int>::type, event::Future<int>);
     EXPECT_SAME_TYPE(event::UnwrapFuture<PromiseTraitsTests>::type, event::Future<PromiseTraitsTests>);
+
+    EXPECT_SAME_TYPE(event::UnwrapFuture<event::Future<>>::future_type, event::Future<void>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<event::Future<int>>::future_type, event::Future<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<TemplateSubclass<int>>::future_type, event::Future<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<Subclass>::future_type, event::Future<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<void>::future_type, event::Future<void>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<int>::future_type, event::Future<int>);
+    EXPECT_SAME_TYPE(event::UnwrapFuture<PromiseTraitsTests>::future_type, event::Future<PromiseTraitsTests>);
 }
 
 }

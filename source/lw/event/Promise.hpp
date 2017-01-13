@@ -42,17 +42,27 @@ struct IsFuture : public std::integral_constant<
 
 // -------------------------------------------------------------------------- //
 
+namespace _details {
+    template <typename T, bool is_future>
+    struct _unwrap_future {
+        typedef T result_type;          ///< The type that is promised.
+        typedef Future<T> type;         ///< The type of future.
+        typedef Future<T> future_type;  ///< A base future for this result.
+    };
+
+    template <typename T>
+    struct _unwrap_future<T, true> {
+        typedef typename T::result_type result_type;
+        typedef T type;
+        typedef Future<result_type> future_type;
+    };
+}
+
 /// @brief Breaks down a type to the highest non-future layer.
 ///
 /// @tparam T The type to break down.
 template <typename T>
-struct UnwrapFuture {
-    typedef T result_type;  ///< The type that will be promised.
-    typedef Future<T> type; ///< The type of a future for this type.
-};
-
-template <typename T>
-struct UnwrapFuture<Future<T>> : public UnwrapFuture<T> {};
+struct UnwrapFuture : public _details::_unwrap_future<T, IsFuture<T>::value> {};
 
 // -------------------------------------------------------------------------- //
 
@@ -248,7 +258,10 @@ public:
 
     template <typename Result, typename Resolve, typename Reject>
     auto then(Resolve&& resolve, Reject&& reject){
-        return _then<Result>(std::forward<Resolve>(resolve), std::forward<Reject>(reject));
+        return _then<Result>(
+            std::forward<Resolve>(resolve),
+            std::forward<Reject>(reject)
+        );
     }
 
     // ---------------------------------------------------------------------- //
@@ -322,7 +335,10 @@ private:
         typename ResolveResult = typename std::result_of<Resolve(T&&)>::type,
         typename std::enable_if<IsFuture<ResolveResult>::value>::type* = nullptr
     >
-    Future<typename ResolveResult::result_type> _then(Resolve&& resolve, Reject&& reject);
+    Future<typename ResolveResult::result_type> _then(
+        Resolve&& resolve,
+        Reject&& reject
+    );
 
     // ---------------------------------------------------------------------- //
 
@@ -332,7 +348,8 @@ private:
     ///
     /// @param resolve A synchronous functor returning some value.
     ///
-    /// @return A `Future` which will be resolved with the return value from `resolve`.
+    /// @return A `Future` which will be resolved with the return value from
+    /// `resolve`.
     template <
         typename Resolve,
         typename Reject,
