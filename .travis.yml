@@ -3,15 +3,18 @@ compiler:
     - gcc
 os:
     - linux
-dist: trusty
 addons:
     apt:
+        sources:
+            - ubuntu-toolchain-r-test
         packages:
             - binutils
+            - gcc-5
+            - g++-5
             - lcov
 install:
     - export PATH=$HOME/.local/bin:$PATH
-    - pip install cpp-coveralls pyyaml requests[security] --user `whoami`
+    - pip install --user cpp-coveralls pyyaml requests[security]
     - ./setup.sh --coverage
 script:
     - cd build
