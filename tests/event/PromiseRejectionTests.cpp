@@ -18,7 +18,7 @@ struct PromiseRejectionTests : public testing::Test {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F( PromiseRejectionTests, Reject ){
+TEST_F(PromiseRejectionTests, Reject) {
     // State observation variables.
     bool chained    = false;
     bool rejected   = false;
@@ -48,7 +48,7 @@ TEST_F( PromiseRejectionTests, Reject ){
 
 // -------------------------------------------------------------------------- //
 
-TEST_F( PromiseRejectionTests, RejectBubbling ){
+TEST_F(PromiseRejectionTests, RejectBubbling) {
     // State observation variables.
     bool chained    = false;
     bool rejected   = false;
@@ -80,7 +80,39 @@ TEST_F( PromiseRejectionTests, RejectBubbling ){
 
 // -------------------------------------------------------------------------- //
 
-TEST_F( PromiseRejectionTests, UnhandledRejection ){
+TEST_F(PromiseRejectionTests, NonVoidRejectBubbling) {
+    // State observation variables.
+    bool chained    = false;
+    bool rejected   = false;
+
+    // Create the promise and assign a resolve handler.
+    event::Promise<int> prom;
+    prom.future().then([&](int) {
+        FAIL() << "Entered resolve handler for rejected promise.";
+    }).then([&]() {
+        FAIL() << "Entered resolve handler after rejected promise.";
+    }, [&](const error::Exception& err) {
+        EXPECT_TRUE(chained);
+        EXPECT_FALSE(rejected);
+
+        EXPECT_EQ( code,    err.error_code()    );
+        EXPECT_EQ( message, err.what()          );
+
+        rejected = true;
+    });
+
+    // The handler is chained, check that it hasn't been run.
+    chained = true;
+    EXPECT_FALSE(rejected);
+
+    // Resolve the promise and check that the rejected handler is true
+    prom.reject(test_error);
+    EXPECT_TRUE(rejected);
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseRejectionTests, UnhandledRejection) {
     // Create the promise and assign a resolve handler.
     event::Promise<> prom;
     prom.future().then([&](){
@@ -91,6 +123,87 @@ TEST_F( PromiseRejectionTests, UnhandledRejection ){
 
     // Resolve the promise and check that the rejected handler is true
     EXPECT_THROW( prom.reject( test_error ), error::Exception );
+    EXPECT_TRUE(prom.is_rejected());
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseRejectionTests, NonVoidUnhandledRejection) {
+    // Create the promise and assign a resolve handler.
+    event::Promise<int> prom;
+    prom.future().then([&](int){
+        FAIL() << "Entered resolve handler for rejected promise.";
+    }).then([&](){
+        FAIL() << "Entered resolve handler after rejected promise.";
+    });
+
+    // Resolve the promise and check that the rejected handler is true
+    EXPECT_THROW(prom.reject(test_error), error::Exception);
+    EXPECT_TRUE(prom.is_rejected());
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseRejectionTests, ThrowInResolve) {
+    // State observation variables.
+    bool chained    = false;
+    bool rejected   = false;
+
+    // Create the promise and assign a resolve handler.
+    event::Promise<> prom;
+    prom.future().then([&]() {
+        throw test_error;
+    }).then([&]() {
+        FAIL() << "Entered resolve handler after rejected promise.";
+    }, [&](const error::Exception& err) {
+        EXPECT_TRUE(chained);
+        EXPECT_FALSE(rejected);
+
+        EXPECT_EQ( code,    err.error_code()    );
+        EXPECT_EQ( message, err.what()          );
+
+        rejected = true;
+    });
+
+    // The handler is chained, check that it hasn't been run.
+    chained = true;
+    EXPECT_FALSE(rejected);
+
+    // Resolve the promise and check that the rejected handler is true
+    prom.resolve();
+    EXPECT_TRUE(rejected);
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseRejectionTests, NonVoidThrowInResolve) {
+    // State observation variables.
+    bool chained    = false;
+    bool rejected   = false;
+
+    // Create the promise and assign a resolve handler.
+    event::Promise<> prom;
+    prom.future().then([&]() -> int {
+        throw test_error;
+    }).then([&](int) {
+        FAIL() << "Entered resolve handler after rejected promise.";
+    }, [&](const error::Exception& err) {
+        EXPECT_TRUE(chained);
+        EXPECT_FALSE(rejected);
+
+        EXPECT_EQ( code,    err.error_code()    );
+        EXPECT_EQ( message, err.what()          );
+
+        rejected = true;
+    });
+
+    // The handler is chained, check that it hasn't been run.
+    chained = true;
+    EXPECT_FALSE(rejected);
+
+    // Resolve the promise and check that the rejected handler is true
+    prom.resolve();
+    EXPECT_TRUE(rejected);
 }
 
 }

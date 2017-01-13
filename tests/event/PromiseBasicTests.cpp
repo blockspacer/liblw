@@ -16,31 +16,32 @@ struct Destructor {
 
     // ---------------------------------------------------------------------- //
 
-    Destructor( void ){
+    Destructor() {
         ++construct_count;
         ++default_construct_count;
     }
 
     // ---------------------------------------------------------------------- //
 
-    Destructor( const Destructor& ){
+    Destructor(const Destructor&) {
         ++construct_count;
         ++copy_construct_count;
     }
 
     // ---------------------------------------------------------------------- //
 
-    Destructor( Destructor&& ){
+    Destructor(Destructor&&) {
         ++construct_count;
         ++move_construct_count;
     }
 
     // ---------------------------------------------------------------------- //
 
-    ~Destructor( void ){
+    ~Destructor() {
         ++destruct_count;
     }
 };
+
 std::int64_t Destructor::construct_count           = 0;
 std::int64_t Destructor::default_construct_count   = 0;
 std::int64_t Destructor::move_construct_count      = 0;
@@ -54,12 +55,12 @@ struct PromiseBasicTests : public testing::Test {
 
 // -------------------------------------------------------------------------- //
 
-TEST_F( PromiseBasicTests, ReuseWithReset ){
+TEST_F(PromiseBasicTests, ReuseWithReset) {
     event::Promise<> promise;
     int firstCallCount  = 0;
     int secondCallCount = 0;
 
-    promise.future().then([&](){
+    promise.future().then([&]() {
         EXPECT_EQ( 0, firstCallCount    );
         EXPECT_EQ( 0, secondCallCount   );
         ++firstCallCount;
@@ -72,7 +73,7 @@ TEST_F( PromiseBasicTests, ReuseWithReset ){
     EXPECT_EQ( 0, secondCallCount   );
 
     promise.reset();
-    promise.future().then([&](){
+    promise.future().then([&]() {
         EXPECT_EQ( 1, firstCallCount    );
         EXPECT_EQ( 0, secondCallCount   );
         ++secondCallCount;
@@ -87,13 +88,31 @@ TEST_F( PromiseBasicTests, ReuseWithReset ){
 
 // -------------------------------------------------------------------------- //
 
-TEST_F( PromiseBasicTests, Destruction ){
+TEST_F(PromiseBasicTests, ResetUnfinished) {
+    event::Promise<> promise;
+    EXPECT_THROW({
+        promise.reset();
+    }, event::PromiseError);
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseBasicTests, NonVoidResetUnfinished) {
+    event::Promise<int> promise;
+    EXPECT_THROW({
+        promise.reset();
+    }, event::PromiseError);
+}
+
+// -------------------------------------------------------------------------- //
+
+TEST_F(PromiseBasicTests, Destruction) {
     auto promise = std::make_shared< event::Promise<> >();
 
     {
         Destructor monitor;
         ASSERT_EQ( 1, Destructor::construct_count );
-        promise->future().then([ this, monitor ](){
+        promise->future().then([ this, monitor ]() {
             EXPECT_LE( 2, Destructor::construct_count       );
             EXPECT_LE( 1, Destructor::copy_construct_count  );
             EXPECT_LE( 1, Destructor::destruct_count        );
